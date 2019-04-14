@@ -41,7 +41,7 @@ class ChatRoom:
         Index endpoint to connect to.
         :return: index.html
         """
-        return file("../bin/html/index.html")
+        return open("../bin/html/index.html")
 
     @cherrypy.expose()
     def getMsgs(self, room="", limit=20):
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     host = read_file("host.txt")
 
     cherrypy.config.update({
-        "server.socket_port": 8081,
+        "server.socket_port": 8082,
         "server.socket_host": host,
         "response.timeout": 1600000
     })
