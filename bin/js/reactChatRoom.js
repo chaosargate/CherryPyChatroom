@@ -104,7 +104,7 @@ class ChatRoom extends React.Component {
         var messages = props.messages;
 
         this.state = {
-            source: new EventSource("/getMsgs"),
+            source: new EventSource(`/getMsgs?evt=true&room=${roomParam}`),
             messages: messages,
             inputMessage: "",
             room: roomParam ? roomParam : "",
@@ -134,7 +134,7 @@ class ChatRoom extends React.Component {
         var allMessages = currMessages.concat(newMessages);
         var asOf = allMessages[allMessages.length - 1]["time"];
 
-        var newSource = new EventSource(`/getMsgs?asOf=${asOf}`);
+        var newSource = new EventSource(`/getMsgs?evt=true&asOf=${asOf}&room=${this.state.room}`);
         newSource.onmessage = (e => this.updateFromSource(e));
 
         this.setState({
@@ -154,7 +154,7 @@ class ChatRoom extends React.Component {
             currTime = mostRecentMessage["time"];
         }
 
-        ajaxHelper.fetchMessages(currTime).then((resp) => this.addMsgsToState(resp));
+        ajaxHelper.fetchMessages(currTime, this.state.room).then((resp) => this.addMsgsToState(resp));
     }
 
     sendMsg() {
@@ -169,7 +169,7 @@ class ChatRoom extends React.Component {
             "msg": inputMsg,
             "user": this.state.userName,
             "time": new Date().getTime(),
-            "room": this.state.room ? room : ""
+            "room": this.state.room ? this.state.room : ""
         };
 
         ajaxHelper.sendMessage(data).then((resp) => this.finishSendingMessage());

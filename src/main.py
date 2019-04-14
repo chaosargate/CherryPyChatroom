@@ -18,7 +18,7 @@ class ChatRoom:
         self.users = {}
 
     @cherrypy.expose()
-    def index(self):
+    def index(self, room=""):
         """
         Index endpoint to connect to.
         :return: index.html
@@ -26,7 +26,7 @@ class ChatRoom:
         return open("../bin/html/index.html")
 
     @cherrypy.expose()
-    def getMsgs(self, asOf=None, room="", limit=20):
+    def getMsgs(self, asOf=None, evt=False, room="", limit=20):
         """
         Endpoint to get messages for the given room.
         :param room: The room to access.
@@ -40,7 +40,8 @@ class ChatRoom:
         if asOf:
             msgs = list(filter(lambda x: x["time"] > str(asOf), msgs))
 
-        return 'retry: 1200\ndata: {0}\n\n'.format(json.dumps(msgs))
+        jsonMsgs = json.dumps(msgs)
+        return 'retry: 1200\ndata: {0}\n\n'.format(jsonMsgs) if evt else jsonMsgs
 
     @cherrypy.expose()
     def sendMsg(self, msg, user, time=0, room=""):
@@ -114,10 +115,11 @@ class ChatRoom:
         :param room: The room to look up.
         :return: A list of messages from room.
         """
-        if room not in self.messages:
-            self.messages[room] = []
+        lowerRoom = room.lower()
+        if lowerRoom not in self.messages:
+            self.messages[lowerRoom] = []
 
-        return self.messages[room]
+        return self.messages[lowerRoom]
 
 
 if __name__ == "__main__":

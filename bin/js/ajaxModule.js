@@ -23,10 +23,11 @@ var ajaxModule = function() {
         })
     }
 
-    var fetchMessages = function(asOf) {
+    var fetchMessages = function(asOf, room) {
         return new Promise(function(resolve, reject) {
             var inputData = {
-                asOf: asOf
+                asOf: asOf,
+                room: room
             };
 
             resolve(makeGet("/getMsgs", inputData));
