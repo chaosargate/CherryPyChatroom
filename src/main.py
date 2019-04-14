@@ -33,12 +33,14 @@ class ChatRoom:
         :param limit: The number of messages to retrieve.
         :return: A JSON Array of messages for the requested room.
         """
+
+        cherrypy.response.headers["Content-Type"] = "text/event-stream;charset=utf-8"
         msgs = self.getRoomMsg(room)[-1 * limit:]
 
         if asOf:
             msgs = list(filter(lambda x: x["time"] > str(asOf), msgs))
 
-        return json.dumps(msgs)
+        return 'retry: 1200\ndata: {0}\n\n'.format(json.dumps(msgs))
 
     @cherrypy.expose()
     def sendMsg(self, msg, user, time=0, room=""):

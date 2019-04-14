@@ -104,6 +104,7 @@ class ChatRoom extends React.Component {
         var messages = props.messages;
 
         this.state = {
+            source: new EventSource("/getMsgs"),
             messages: messages,
             inputMessage: "",
             room: roomParam ? roomParam : "",
@@ -111,13 +112,35 @@ class ChatRoom extends React.Component {
         }
     }
 
+    componentDidMount() {
+        var source = this.state.source;
+
+        source.onmessage = (e => this.updateFromSource(e));
+    }
+
+    updateFromSource(e) {
+        var data = JSON.parse(e.data);
+
+        if (data.length > 0) {
+            this.addMsgsToState(data);
+        }
+    }
+
     addMsgsToState(newMessages) {
 
         var currMessages = this.state.messages;
+        this.state.source.close();
 
         var allMessages = currMessages.concat(newMessages);
+        var asOf = allMessages[allMessages.length - 1]["time"];
 
-        this.setState({messages: allMessages});
+        var newSource = new EventSource(`/getMsgs?asOf=${asOf}`);
+        newSource.onmessage = (e => this.updateFromSource(e));
+
+        this.setState({
+            messages: allMessages,
+            source: newSource
+        });
         updateScroll();
     }
 
@@ -219,9 +242,6 @@ class ChatRoom extends React.Component {
         var bottomInput = this.state.userName == "" ? this.renderLoginInput() : this.renderMessageInput();
         return (
             <div className="messageComponent">
-                <div onClick={() => this.fetchMsgs()}>
-                    UPDATE
-                </div>
                 <MessagesHolder
                     messages={this.state.messages}
                 ></MessagesHolder>
@@ -240,9 +260,9 @@ $.urlParam = function (name) {
     return (results !== null) ? results[1] || 0 : false;
 }
 
-ajaxHelper.fetchMessages().then( messages =>
-    ReactDOM.render(<ChatRoom room={$.urlParam("room")} messages={messages}/>, document.getElementById("ReactViewer"))
-);
+//ajaxHelper.fetchMessages().then( messages =>
+ReactDOM.render(<ChatRoom room={$.urlParam("room")} messages={[]}/>, document.getElementById("ReactViewer"))
+//);
 
 var scrolled = false;
 function updateScroll(){
