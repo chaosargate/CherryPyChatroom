@@ -2,6 +2,12 @@
     font-family: Arial, Helvetica, sans-serif
 }
 
+button {
+    margin-top: 8px;
+    margin-left: 8px;
+    padding: 5px
+}
+
 .messageComponent {
     align-content: center;
     padding: 10px;
@@ -27,15 +33,18 @@
 }
 
 .messageUser {
-    margin: 0px;
+    margin-top: 0px;
+    margin-bottom: 2px;
+    font-size: 14;
 }
 
 .messageTime {
-    font-size: smaller;
+    font-size: 10;
 }
 
 .messageBody {
-    font-size: smaller;
+    margin-top: 2px;
+    font-size: 12;
 }
 
 .messageInput {
@@ -45,13 +54,30 @@
 
 .messageBox {
     width: 300px;
-    height: 100px;
+    height: 50px;
     max-width: 300px;
     padding: 5px;
 }
 
 .messagePost {
     float: right;
-    margin-top: 8px;
+}
+
+.loginDiv {
+    margin-top: 3px;
+}
+
+.loginInput {
+    width: 290px;
+    margin: 5px;
     padding: 5px;
+    height: 30px;
+    border-radius: 4px;
+    border-style: solid;
+    border-width: 1px;
+    border-color: darkgray;
+}
+
+.authenticationButtons {
+    float: right;
 }

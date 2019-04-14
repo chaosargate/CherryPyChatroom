@@ -1,6 +1,6 @@
 function MessageTitle(props) {
     var user = props.user;
-    var time = props.time;
+    var time = new Date(parseInt(props.time)).toLocaleString();
     return(
         <div>
             <h4 className="messageUser">{user}</h4>
@@ -39,11 +39,18 @@ function MessagesHolder(props) {
 }
 
 function MessageBox(props) {
+    var updateMsg = props.updateMsg;
+    var inputMsg = props.inputMsg;
+    var onEnterPress = props.onEnterPress;
+
     return (
         <textarea
             maxLength="500"
             className="messageBox"
             id="MessageBox"
+            onChange={updateMsg}
+            onKeyDown={onEnterPress}
+            value={inputMsg}
         />
     )
 }
@@ -59,11 +66,31 @@ function MessagePost(props) {
 
 function MessageInput(props) {
     var sendMsg = props.sendMsg;
+    var updateMsg = props.updateMsg;
+    var inputMsg = props.inputMsg;
+    var onEnterPress = props.onEnterPress;
 
     return (
         <div className="MessageInput">
-            <MessageBox />
+            <MessageBox updateMsg={updateMsg} inputMsg={inputMsg} onEnterPress={onEnterPress}/>
             <MessagePost sendMsg={sendMsg}/>
+        </div>
+    )
+}
+
+function LoginInput(props) {
+
+    var loginFn = props.loginFn;
+    var registerFn = props.registerFn;
+
+    return (
+        <div className="loginDiv">
+            <input id="loginUser" placeholder="Username" className="loginInput" />
+            <input id="loginPass" placeholder="Password" type="password" className="loginInput" />
+            <div className="authenticationButtons">
+                <button onClick={loginFn}>LOGIN</button>
+                <button onClick={registerFn}>REGISTER</button>
+            </div>
         </div>
     )
 }
@@ -74,29 +101,42 @@ class ChatRoom extends React.Component {
         super(props);
 
         var roomParam = props.room;
+        var messages = props.messages;
 
         this.state = {
-            messages: [],
+            messages: messages,
+            inputMessage: "",
             room: roomParam ? roomParam : "",
+            userName: "",
         }
     }
 
-    addMsgsToState(messages) {
-        this.setState({messages: messages});
+    addMsgsToState(newMessages) {
+
+        var currMessages = this.state.messages;
+
+        var allMessages = currMessages.concat(newMessages);
+
+        this.setState({messages: allMessages});
         updateScroll();
     }
 
     fetchMsgs() {
-        $.ajax({
-            url: "/getMsgs",
-            dataType: "json",
-            data: {room: this.state.room}
-        }).done((resp) => this.addMsgsToState(resp));
+
+        var currTime = null;
+        var currMessages = this.state.messages;
+
+        if (currMessages.length > 0) {
+            var mostRecentMessage = currMessages[currMessages.length - 1];
+            currTime = mostRecentMessage["time"];
+        }
+
+        ajaxHelper.fetchMessages(currTime).then((resp) => this.addMsgsToState(resp));
     }
 
     sendMsg() {
 
-        var inputMsg = $("#MessageBox").val();
+        var inputMsg = this.state.inputMessage;
 
         if (inputMsg == "") {
             return;
@@ -104,18 +144,79 @@ class ChatRoom extends React.Component {
 
         var data = {
             "msg": inputMsg,
-            "room": this.state.room
+            "user": this.state.userName,
+            "time": new Date().getTime(),
+            "room": this.state.room ? room : ""
         };
 
-        $.ajax({
-            url: "/sendMsg",
-            type: "POST",
-            dataType: "json",
-            data: data
-        }).done((resp) => this.fetchMsgs());
+        ajaxHelper.sendMessage(data).then((resp) => this.finishSendingMessage());
+    }
+
+    finishSendingMessage() {
+        this.setState({inputMessage: ""});
+        this.fetchMsgs();
+    }
+
+    updateMsg(evt) {
+        var msg = evt.target.value;
+        this.setState({inputMessage: msg});
+    }
+
+    onEnterPress(evt) {
+        if (evt.keyCode == 13 && evt.shiftKey == false) {
+            evt.preventDefault();
+            this.sendMsg();
+        }
+    }
+
+    getLoginInfo() {
+        var loginUser = $("#loginUser").val();
+        var loginPass = $("#loginPass").val();
+        return {"userName": loginUser, "password": loginPass}
+    }
+
+    loginFn(evt) {
+        ajaxHelper.loginUser(this.getLoginInfo()).then(resp => this.loginSuccess(resp));
+    }
+
+    registerFn(evt) {
+        ajaxHelper.registerUser(this.getLoginInfo()).then(resp => this.loginFn(evt));
+    }
+
+    loginSuccess(respJson) {
+        var status = respJson["status"];
+        if (status == "Success") {
+            var userName = respJson["name"];
+            this.setState({userName: userName});
+        } else {
+            var errorMsg = respJson["msg"];
+            alert(errorMsg);
+        }
+    }
+
+    renderMessageInput() {
+        return (
+            <MessageInput
+                sendMsg={() => this.sendMsg()}
+                updateMsg={(e) => this.updateMsg(e)}
+                onEnterPress={(e) => this.onEnterPress(e)}
+                inputMsg={this.state.inputMessage}
+            ></MessageInput>
+        )
+    }
+
+    renderLoginInput() {
+        return (
+            <LoginInput
+                loginFn={(e) => this.loginFn(e)}
+                registerFn={(e) => this.registerFn(e)}
+            >
+            </LoginInput>
+        )
     }
 
     render() {
+        var bottomInput = this.state.userName == "" ? this.renderLoginInput() : this.renderMessageInput();
         return (
             <div className="messageComponent">
                 <div onClick={() => this.fetchMsgs()}>
@@ -124,9 +225,7 @@ class ChatRoom extends React.Component {
                 <MessagesHolder
                     messages={this.state.messages}
                 ></MessagesHolder>
-                <MessageInput
-                    sendMsg={() => this.sendMsg()}
-                ></MessageInput>
+                {bottomInput}
             </div>
         )
     }
@@ -141,7 +240,9 @@ $.urlParam = function (name) {
     return (results !== null) ? results[1] || 0 : false;
 }
 
-ReactDOM.render(<ChatRoom room={$.urlParam("room")}/>, document.getElementById("ReactViewer"))
+ajaxHelper.fetchMessages().then( messages =>
+    ReactDOM.render(<ChatRoom room={$.urlParam("room")} messages={messages}/>, document.getElementById("ReactViewer"))
+);
 
 var scrolled = false;
 function updateScroll(){
