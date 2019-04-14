@@ -7,12 +7,12 @@ from utils import read_file
 
 class ChatRoom:
     """
-    Chatroom made in CherryPy.
+    Chatroom made in CherryPy with a ReactJS frontend.
     """
 
     def __init__(self):
         """
-        Init method. Instantiates the messages queue in RAM.
+        Init method. Instantiates the messages queue and user info in RAM.
         """
         self.messages = {}
         self.users = {}
@@ -21,14 +21,18 @@ class ChatRoom:
     def index(self, room=""):
         """
         Index endpoint to connect to.
+        :param room: The room to connect to. Initializes the room if it doesn't yet exist.
         :return: index.html
         """
+        self.initRoom(room)
         return open("../bin/html/index.html")
 
     @cherrypy.expose()
     def getMsgs(self, asOf=None, evt=False, room="", limit=20):
         """
         Endpoint to get messages for the given room.
+        :param asOf: Filter out all messages from before this timestamp.
+        :param evt: Is this being called from an EventSource? If yes, then return as an event stream.
         :param room: The room to access.
         :param limit: The number of messages to retrieve.
         :return: A JSON Array of messages for the requested room.
@@ -48,6 +52,8 @@ class ChatRoom:
         """
         Endpoint to send messages to the given room.
         :param msg: The message to send.
+        :param user: The name of the user sending this message.
+        :param time: The timestamp of this message.
         :param room: The room to send to.
         :return: A JSON confirming successful submission.
         """
@@ -59,6 +65,12 @@ class ChatRoom:
 
     @cherrypy.expose()
     def registerUser(self, userName, password):
+        """
+        Registers this user in the server memory.
+        :param userName: The user to register.
+        :param password: The user's password.
+        :return: A JSON with the request status.
+        """
         returnObj = {}
 
         lowerUserName = userName.lower()
@@ -68,11 +80,18 @@ class ChatRoom:
             returnObj["msg"] = "User is already registered!"
         else:
             self.users[lowerUserName] = hashlib.sha256(password.encode("utf-8"))
+            returnObj["status"] = "Success"
 
         return json.dumps(returnObj)
 
     @cherrypy.expose()
     def loginUser(self, userName, password):
+        """
+        Attempts to validate the user credentials.
+        :param userName: The user to log in.
+        :param password: The user's password.
+        :return: A JSON with the request status.
+        """
         returnObj = {}
 
         lowerUserName = userName.lower()
@@ -96,6 +115,8 @@ class ChatRoom:
         """
         Private method to add the given msg to the room.
         :param msg: The message to send.
+        :param user: The name of the user sending this message.
+        :param time: The timestamp of this message.
         :param room: The room to send to.
         """
         roomMsgs = self.getRoomMsg(room)
@@ -109,6 +130,16 @@ class ChatRoom:
 
         roomMsgs.append(newMsg)
 
+    def initRoom(self, room):
+        """
+        Initializes the chatroom in memory.
+        :param room: The room to initialize.
+        """
+        lowerRoom = room.lower()
+        if lowerRoom not in self.messages:
+            self.messages[lowerRoom] = []
+
+
     def getRoomMsg(self, room):
         """
         Helper method to get the correct message array.
@@ -116,9 +147,6 @@ class ChatRoom:
         :return: A list of messages from room.
         """
         lowerRoom = room.lower()
-        if lowerRoom not in self.messages:
-            self.messages[lowerRoom] = []
-
         return self.messages[lowerRoom]
 
 
