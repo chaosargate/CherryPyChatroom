@@ -100,14 +100,14 @@ class ChatRoom extends React.Component {
     constructor(props) {
         super(props);
 
-        var roomParam = props.room;
+        var roomParam = props.room ? props.room : "";
         var messages = props.messages;
 
         this.state = {
             source: new EventSource(`/getMsgs?evt=true&room=${roomParam}`),
             messages: messages,
             inputMessage: "",
-            room: roomParam ? roomParam : "",
+            room: roomParam,
             userName: "",
         }
     }
